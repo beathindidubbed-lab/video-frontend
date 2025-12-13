@@ -10,7 +10,13 @@ app.use(express.static('public'));
 
 // Main download route
 app.get('/', (req, res) => {
-  const fileId = req.query.file || req.query.id;
+  // Support multiple parameter formats
+  let fileId = req.query.file || req.query.id;
+  
+  // Handle /stream/XXXXX format
+  if (!fileId && req.query.stream) {
+    fileId = req.query.stream.replace(/^\/stream\//, '');
+  }
   
   if (!fileId) {
     return res.send(`
@@ -61,7 +67,13 @@ app.get('/', (req, res) => {
 
 // Download route with nice UI
 app.get('/download', (req, res) => {
-  const fileId = req.query.file || req.query.id;
+  // Support multiple parameter formats
+  let fileId = req.query.file || req.query.id;
+  
+  // Handle /stream/XXXXX format
+  if (!fileId && req.query.stream) {
+    fileId = req.query.stream.replace(/^\/stream\//, '');
+  }
   
   if (!fileId) {
     return res.redirect('/');
