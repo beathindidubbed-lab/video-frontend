@@ -61,8 +61,8 @@ app.get('/', (req, res) => {
     `);
   }
 
-  // Redirect to download with file ID
-  res.redirect(`${BOT_API_URL}/download/${fileId}`);
+  // Redirect to bot's stream endpoint
+  res.redirect(`${BOT_API_URL}/stream/${fileId}`);
 });
 
 // Download route with nice UI
@@ -132,7 +132,7 @@ app.get('/download', (req, res) => {
       </div>
       <script>
         setTimeout(() => {
-          window.location.href = '${BOT_API_URL}/download/${fileId}';
+          window.location.href = '${BOT_API_URL}/stream/${fileId}';
         }, 1500);
       </script>
     </body>
