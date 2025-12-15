@@ -3,7 +3,7 @@ const path = require('path');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const BOT_API_URL = process.env.BOT_API_URL || 'https://telegram-download-link-generator-6ds6.onrender.com';
+const BOT_API_URL = process.env.BOT_API_URL || 'https://telegram-download-link-generator-production.up.railway.app';  // ✅ YOUR RAILWAY URL;
 
 // Security headers middleware
 app.use((req, res, next) => {
