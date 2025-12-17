@@ -506,6 +506,7 @@ function setupPlayerFeatures(player, videoElement, videoUrl) {
     addDoubleTapControls(videoElement, player);
     addDownloadShareButtons(videoUrl);
     updateBufferProgress(videoElement);
+    addSeekBarPreview(player, videoElement); // Add seek bar preview
     
     // Keyboard shortcuts (only when not typing)
     document.addEventListener('keydown', (e) => {
