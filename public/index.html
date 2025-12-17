@@ -122,15 +122,14 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
         
-        /* Double Tap Overlays - FIXED */
+        /* Double Tap Overlays - PROPERLY FIXED */
         .tap-overlay {
             position: absolute;
             top: 0;
             width: 40%;
             height: 100%;
-            z-index: 1000;
-            pointer-events: auto;
-            cursor: pointer;
+            z-index: -1;
+            pointer-events: none;
         }
         
         .tap-overlay-left {
@@ -663,7 +662,7 @@
                 <i class="fas fa-play-circle"></i>
                 <h1>Video Player</h1>
             </div>
-            <p class="subtitle">Stream your content seamlessly</p>
+            <p class="subtitle">Stream your content seamlessly by Beat Anime's Player</p>
         </div>
         
         <div id="loading-indicator">
