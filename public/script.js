@@ -1,4 +1,4 @@
-// Clean Script.js - Fixed Video Player
+// Fixed Script.js - YouTube-like Double Tap Controls
 const BOT_API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:8080'
     : 'https://telegram-download-link-generator-6ds6.onrender.com';
@@ -108,35 +108,102 @@ function detectStreamingFormat(url) {
     return { type: 'standard' };
 }
 
-// Double tap controls
-function addDoubleTapControls(videoElement) {
-    let lastTap = 0;
+// YouTube-like Double Tap Controls - FIXED VERSION
+function addDoubleTapControls(videoElement, player) {
+    const videoWrapper = videoElement.closest('.video-wrapper');
+    if (!videoWrapper) return;
+    
+    // Create overlay container
     const overlay = document.createElement('div');
     overlay.className = 'double-tap-overlay';
-    overlay.innerHTML = `
-        <div class="tap-indicator tap-left"><i class="fas fa-undo"></i><span>10s</span></div>
-        <div class="tap-indicator tap-right"><i class="fas fa-redo"></i><span>10s</span></div>
+    overlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        z-index: 100;
+        pointer-events: auto;
     `;
-    videoElement.parentElement.appendChild(overlay);
     
-    overlay.addEventListener('click', (e) => {
+    // Left and right tap zones
+    const leftZone = document.createElement('div');
+    leftZone.style.cssText = 'flex: 1; position: relative;';
+    const rightZone = document.createElement('div');
+    rightZone.style.cssText = 'flex: 1; position: relative;';
+    
+    // Tap indicators
+    const leftIndicator = document.createElement('div');
+    leftIndicator.className = 'tap-indicator tap-left';
+    leftIndicator.innerHTML = '<i class="fas fa-undo"></i><span>10s</span>';
+    
+    const rightIndicator = document.createElement('div');
+    rightIndicator.className = 'tap-indicator tap-right';
+    rightIndicator.innerHTML = '<i class="fas fa-redo"></i><span>10s</span>';
+    
+    leftZone.appendChild(leftIndicator);
+    rightZone.appendChild(rightIndicator);
+    overlay.appendChild(leftZone);
+    overlay.appendChild(rightZone);
+    
+    // Insert overlay before video element
+    videoElement.parentElement.insertBefore(overlay, videoElement);
+    
+    // Double tap logic for both zones
+    let lastTapTime = 0;
+    let lastTapSide = null;
+    const DOUBLE_TAP_DELAY = 300;
+    
+    function handleTap(side, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
         const now = Date.now();
-        if (now - lastTap < 300 && now - lastTap > 0) {
-            const rect = overlay.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            if (x < rect.width / 2) {
+        const timeSinceLastTap = now - lastTapTime;
+        
+        // Check if this is a double tap
+        if (timeSinceLastTap < DOUBLE_TAP_DELAY && lastTapSide === side) {
+            // This is a double tap!
+            if (side === 'left') {
                 videoElement.currentTime = Math.max(0, videoElement.currentTime - 10);
-                showTapFeedback('left');
+                showTapFeedback(leftIndicator);
             } else {
                 videoElement.currentTime = Math.min(videoElement.duration, videoElement.currentTime + 10);
-                showTapFeedback('right');
+                showTapFeedback(rightIndicator);
             }
+            
+            // Reset to prevent triple tap
+            lastTapTime = 0;
+            lastTapSide = null;
+        } else {
+            // First tap - just record it
+            lastTapTime = now;
+            lastTapSide = side;
+            
+            // Single tap toggles play/pause after delay
+            setTimeout(() => {
+                if (lastTapSide === side && Date.now() - lastTapTime >= DOUBLE_TAP_DELAY) {
+                    player.togglePlay();
+                }
+            }, DOUBLE_TAP_DELAY);
         }
-        lastTap = now;
-    });
+    }
     
-    function showTapFeedback(side) {
-        const indicator = overlay.querySelector(`.tap-${side}`);
+    // Touch events (mobile)
+    leftZone.addEventListener('touchend', (e) => handleTap('left', e), { passive: false });
+    rightZone.addEventListener('touchend', (e) => handleTap('right', e), { passive: false });
+    
+    // Click events (desktop)
+    leftZone.addEventListener('click', (e) => handleTap('left', e));
+    rightZone.addEventListener('click', (e) => handleTap('right', e));
+    
+    // Prevent default touch behavior
+    overlay.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+    }, { passive: true });
+    
+    function showTapFeedback(indicator) {
         indicator.classList.add('active');
         setTimeout(() => indicator.classList.remove('active'), 600);
     }
@@ -213,76 +280,6 @@ function updateBufferProgress(videoElement) {
     }, 500);
 }
 
-// Seek bar preview
-function addSeekBarPreview(videoElement) {
-    setTimeout(() => {
-        const progressBar = document.querySelector('.plyr__progress input[type="range"]');
-        if (!progressBar) return;
-        
-        const previewContainer = document.createElement('div');
-        previewContainer.className = 'seek-preview';
-        previewContainer.innerHTML = `
-            <div class="preview-thumbnail">
-                <canvas class="preview-canvas"></canvas>
-                <div class="preview-time">0:00</div>
-            </div>
-        `;
-        
-        const progressWrapper = progressBar.parentElement;
-        progressWrapper.style.position = 'relative';
-        progressWrapper.appendChild(previewContainer);
-        
-        const canvas = previewContainer.querySelector('.preview-canvas');
-        const timeDisplay = previewContainer.querySelector('.preview-time');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 160;
-        canvas.height = 90;
-        
-        let isHovering = false;
-        
-        progressBar.addEventListener('mouseenter', () => {
-            isHovering = true;
-            previewContainer.style.opacity = '1';
-            previewContainer.style.visibility = 'visible';
-        });
-        
-        progressBar.addEventListener('mouseleave', () => {
-            isHovering = false;
-            previewContainer.style.opacity = '0';
-            previewContainer.style.visibility = 'hidden';
-        });
-        
-        progressBar.addEventListener('mousemove', (e) => {
-            if (!isHovering) return;
-            
-            const rect = progressBar.getBoundingClientRect();
-            const pos = (e.clientX - rect.left) / rect.width;
-            const time = pos * videoElement.duration;
-            if (isNaN(time)) return;
-            
-            const containerRect = progressWrapper.getBoundingClientRect();
-            let left = e.clientX - containerRect.left;
-            const previewWidth = 160;
-            if (left < previewWidth / 2) left = previewWidth / 2;
-            else if (left > containerRect.width - previewWidth / 2) left = containerRect.width - previewWidth / 2;
-            
-            previewContainer.style.left = left + 'px';
-            timeDisplay.textContent = formatTime(time);
-            
-            try {
-                ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            } catch (err) {
-                ctx.fillStyle = '#1a1f3a';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#667eea';
-                ctx.font = '14px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Preview', canvas.width / 2, canvas.height / 2);
-            }
-        });
-    }, 1500);
-}
-
 function formatTime(seconds) {
     if (isNaN(seconds)) return '0:00';
     const h = Math.floor(seconds / 3600);
@@ -306,7 +303,8 @@ function initPlayer(videoUrl) {
         fullscreen: { enabled: true, fallback: true, iosNative: true },
         ratio: '16:9',
         hideControls: true,
-        clickToPlay: true
+        clickToPlay: false, // Disable default click to play
+        resetOnEnd: false
     };
     
     if (format.type === 'hls') {
@@ -359,10 +357,10 @@ function initPlayer(videoUrl) {
 }
 
 function setupPlayerFeatures(player, videoElement, videoUrl) {
-    addDoubleTapControls(videoElement);
+    // Add double tap controls with player reference
+    addDoubleTapControls(videoElement, player);
     addDownloadShareButtons(videoUrl);
     updateBufferProgress(videoElement);
-    addSeekBarPreview(videoElement);
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -399,10 +397,18 @@ function setupPlayerFeatures(player, videoElement, videoUrl) {
                 e.preventDefault();
                 videoElement.currentTime += 10;
                 break;
+            case 'arrowup':
+                e.preventDefault();
+                player.volume = Math.min(1, player.volume + 0.1);
+                break;
+            case 'arrowdown':
+                e.preventDefault();
+                player.volume = Math.max(0, player.volume - 0.1);
+                break;
         }
     });
     
-    // Save position
+    // Save video position
     const videoId = new URLSearchParams(window.location.search).get('file');
     if (videoId) {
         const savedPosition = localStorage.getItem(`video_pos_${videoId}`);
@@ -416,6 +422,7 @@ function setupPlayerFeatures(player, videoElement, videoUrl) {
         }, 5000);
     }
     
+    // Pause on tab hidden
     document.addEventListener('visibilitychange', () => {
         if (document.hidden && !player.paused) player.pause();
     });
@@ -433,6 +440,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
         initPlayer(videoUrl);
     } catch (error) {
+        console.error('Player init error:', error);
         showError('Failed to initialize video player. Please refresh and try again.');
     }
 });
