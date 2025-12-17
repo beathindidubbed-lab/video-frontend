@@ -1,4 +1,4 @@
-// Script.js - Enhanced Video Player Logic with All Features
+// Script.js - Fixed Video Player Logic
 const BOT_API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:8080'
     : 'https://telegram-download-link-generator-6ds6.onrender.com';
@@ -7,10 +7,9 @@ const BOT_API_URL = window.location.hostname === 'localhost'
 let player = null;
 let videoElement = null;
 let currentVideoUrl = null;
-let lastTapTime = 0;
-let tapTimeout = null;
 let bufferUpdateInterval = null;
 let positionSaveInterval = null;
+let previewVideo = null;
 
 // Get video URL from query parameters
 function getVideoUrl() {
@@ -162,38 +161,6 @@ function detectStreamingFormat(url) {
     return { type: 'standard', library: 'native' };
 }
 
-// Detect if running in in-app browser
-function detectInAppBrowser() {
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
-    
-    // Telegram
-    if (ua.indexOf('Telegram') !== -1) {
-        return 'telegram';
-    }
-    
-    // Instagram
-    if (ua.indexOf('Instagram') !== -1) {
-        return 'instagram';
-    }
-    
-    // Facebook
-    if (ua.indexOf('FBAN') !== -1 || ua.indexOf('FBAV') !== -1) {
-        return 'facebook';
-    }
-    
-    // Twitter
-    if (ua.indexOf('Twitter') !== -1) {
-        return 'twitter';
-    }
-    
-    // WhatsApp
-    if (ua.indexOf('WhatsApp') !== -1) {
-        return 'whatsapp';
-    }
-    
-    return null;
-}
-
 // Save playback position
 function savePosition(time) {
     if (currentVideoUrl) {
@@ -228,21 +195,21 @@ function updateBufferProgress() {
     try {
         const buffered = videoElement.buffered;
         if (buffered.length > 0) {
-            const currentTime = videoElement.currentTime;
             const duration = videoElement.duration;
             
-            // Find the buffered range that contains current time
+            // Get the furthest buffered end point
+            let maxBuffered = 0;
             for (let i = 0; i < buffered.length; i++) {
-                if (buffered.start(i) <= currentTime && buffered.end(i) > currentTime) {
-                    const bufferEnd = buffered.end(i);
-                    const bufferPercent = Math.round((bufferEnd / duration) * 100);
-                    
-                    const bufferValue = document.getElementById('buffer-value');
-                    if (bufferValue) {
-                        bufferValue.textContent = `${bufferPercent}%`;
-                    }
-                    break;
+                if (buffered.end(i) > maxBuffered) {
+                    maxBuffered = buffered.end(i);
                 }
+            }
+            
+            const bufferPercent = Math.round((maxBuffered / duration) * 100);
+            
+            const bufferValue = document.getElementById('buffer-value');
+            if (bufferValue) {
+                bufferValue.textContent = `${bufferPercent}%`;
             }
         }
     } catch (e) {
@@ -256,7 +223,7 @@ function setupBufferMonitoring() {
         clearInterval(bufferUpdateInterval);
     }
     
-    bufferUpdateInterval = setInterval(updateBufferProgress, 500);
+    bufferUpdateInterval = setInterval(updateBufferProgress, 1000);
 }
 
 // Setup position saving
@@ -277,7 +244,11 @@ function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
         if (!player || !videoElement) return;
         
-        // Prevent default for our shortcuts
+        // Ignore if typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
         const shortcuts = ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyF', 'KeyM'];
         if (shortcuts.includes(e.code)) {
             e.preventDefault();
@@ -309,15 +280,13 @@ function setupKeyboardShortcuts() {
     });
 }
 
-// Setup double tap controls
+// Setup double tap controls - FIXED VERSION
 function setupDoubleTapControls() {
+    const playerContainer = document.querySelector('.player-container');
     const leftOverlay = document.querySelector('.tap-overlay-left');
     const rightOverlay = document.querySelector('.tap-overlay-right');
     
-    if (!leftOverlay || !rightOverlay) return;
-    
-    let lastTouchTime = 0;
-    let touchTimeout = null;
+    if (!playerContainer || !leftOverlay || !rightOverlay) return;
     
     function handleDoubleTap(direction) {
         if (!videoElement) return;
@@ -337,78 +306,77 @@ function setupDoubleTapControls() {
         }
     }
     
+    // Make overlays always visible and on top
+    leftOverlay.style.pointerEvents = 'auto';
+    rightOverlay.style.pointerEvents = 'auto';
+    leftOverlay.style.zIndex = '1000';
+    rightOverlay.style.zIndex = '1000';
+    
+    // Touch event handler for both overlays
     [leftOverlay, rightOverlay].forEach((overlay, index) => {
         const direction = index === 0 ? 'left' : 'right';
+        let lastTouchTime = 0;
+        let touchTimeout = null;
         
-        // Make overlay clickable
-        overlay.style.pointerEvents = 'auto';
-        overlay.style.cursor = 'pointer';
-        
-        // Touch events
-        overlay.addEventListener('touchstart', (e) => {
+        overlay.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const currentTime = new Date().getTime();
             const tapGap = currentTime - lastTouchTime;
             
-            if (tapGap < 300 && tapGap > 0) {
-                e.preventDefault();
-                handleDoubleTap(direction);
+            if (tapGap < 400 && tapGap > 0) {
+                // Double tap detected
                 clearTimeout(touchTimeout);
+                handleDoubleTap(direction);
             } else {
+                // First tap - wait for potential second tap
                 touchTimeout = setTimeout(() => {
-                    // Single tap - do nothing or toggle play
-                }, 300);
+                    // Single tap - do nothing (let Plyr handle play/pause)
+                }, 400);
             }
             
             lastTouchTime = currentTime;
         });
         
-        // Click events for desktop
+        // Desktop double click support
         let clickCount = 0;
         let clickTimeout = null;
         
         overlay.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent default behavior
-            e.stopPropagation(); // Stop event bubbling
+            e.preventDefault();
+            e.stopPropagation();
             clickCount++;
             
             if (clickCount === 1) {
                 clickTimeout = setTimeout(() => {
                     clickCount = 0;
-                }, 300);
+                }, 400);
             } else if (clickCount === 2) {
                 clearTimeout(clickTimeout);
                 clickCount = 0;
-                e.preventDefault(); // Prevent fullscreen toggle
                 handleDoubleTap(direction);
             }
-        });
-        
-        // Also prevent dblclick event to stop fullscreen toggle
-        overlay.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
         });
     });
 }
 
-// Setup seek bar preview
+// Setup seek bar preview - FIXED VERSION
 function setupSeekPreview() {
-    const plyrContainer = document.querySelector('.plyr');
     const preview = document.getElementById('seek-preview');
     const previewCanvas = document.getElementById('preview-canvas');
     const previewTime = document.getElementById('preview-time');
+    
+    if (!preview || !previewCanvas || !videoElement) return;
+    
     const ctx = previewCanvas.getContext('2d');
-    
-    if (!plyrContainer || !preview || !previewCanvas || !videoElement) return;
-    
-    // Set canvas size
     previewCanvas.width = 160;
     previewCanvas.height = 90;
     
     let isHovering = false;
-    let previewVideo = null;
+    let isSeeking = false;
     
-    // Create a hidden video element for preview frames
+    // Initialize preview video element
     function initPreviewVideo() {
         if (previewVideo) return;
         
@@ -416,28 +384,33 @@ function setupSeekPreview() {
         previewVideo.style.display = 'none';
         previewVideo.crossOrigin = 'anonymous';
         previewVideo.muted = true;
-        previewVideo.preload = 'metadata';
+        previewVideo.preload = 'auto';
         previewVideo.src = videoElement.src;
         document.body.appendChild(previewVideo);
         
-        console.log('Preview video initialized');
+        previewVideo.addEventListener('seeked', () => {
+            drawFrame(previewVideo);
+        });
     }
     
-    function updatePreview(e) {
+    function drawFrame(sourceVideo) {
+        try {
+            ctx.drawImage(sourceVideo, 0, 0, previewCanvas.width, previewCanvas.height);
+        } catch (err) {
+            // Fallback to gradient background
+            ctx.fillStyle = '#1a1f3a';
+            ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+            ctx.fillStyle = '#667eea';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Preview', previewCanvas.width / 2, previewCanvas.height / 2);
+        }
+    }
+    
+    function updatePreview(clientX, rect) {
         if (!videoElement || !videoElement.duration) return;
         
-        const seekBar = plyrContainer.querySelector('.plyr__progress input[type="range"]');
-        if (!seekBar) return;
-        
-        const rect = seekBar.getBoundingClientRect();
-        let x;
-        
-        if (e.touches) {
-            x = e.touches[0].clientX - rect.left;
-        } else {
-            x = e.clientX - rect.left;
-        }
-        
+        const x = clientX - rect.left;
         const percentage = Math.max(0, Math.min(1, x / rect.width));
         const time = percentage * videoElement.duration;
         
@@ -446,99 +419,82 @@ function setupSeekPreview() {
         
         // Position preview
         let previewX = rect.left + (percentage * rect.width) - (preview.offsetWidth / 2);
-        
-        // Keep preview within viewport
         const maxX = window.innerWidth - preview.offsetWidth - 10;
         previewX = Math.max(10, Math.min(maxX, previewX));
         
         preview.style.left = `${previewX}px`;
         preview.classList.add('visible');
         
-        // Capture video frame at hover position
-        try {
-            // Initialize preview video if needed
-            if (!previewVideo) {
-                initPreviewVideo();
-            }
-            
-            // Method 1: Try to seek preview video (most accurate)
-            if (previewVideo && previewVideo.readyState >= 2) {
-                previewVideo.currentTime = time;
-                
-                // Wait a tiny bit for seek to complete, then draw
-                setTimeout(() => {
-                    try {
-                        ctx.drawImage(previewVideo, 0, 0, previewCanvas.width, previewCanvas.height);
-                    } catch (err) {
-                        // Fallback: draw from main video
-                        drawCurrentFrame();
-                    }
-                }, 50);
-            } else {
-                // Method 2: Draw from current playing video (fallback)
-                drawCurrentFrame();
-            }
-        } catch (err) {
-            console.log('Frame capture error:', err);
-            // Show a placeholder or current frame
-            drawCurrentFrame();
+        // Initialize and update preview video
+        if (!previewVideo) {
+            initPreviewVideo();
         }
-    }
-    
-    function drawCurrentFrame() {
-        try {
-            ctx.drawImage(videoElement, 0, 0, previewCanvas.width, previewCanvas.height);
-        } catch (err) {
-            // If even this fails, draw a dark background
-            ctx.fillStyle = '#1a1f3a';
-            ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-            ctx.fillStyle = '#667eea';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Preview', previewCanvas.width / 2, previewCanvas.height / 2);
+        
+        if (previewVideo && previewVideo.readyState >= 2) {
+            previewVideo.currentTime = time;
+        } else {
+            drawFrame(videoElement);
         }
     }
     
     function hidePreview() {
         isHovering = false;
+        isSeeking = false;
         setTimeout(() => {
-            if (!isHovering) {
+            if (!isHovering && !isSeeking) {
                 preview.classList.remove('visible');
             }
-        }, 100);
+        }, 150);
     }
     
-    // Mouse events
-    plyrContainer.addEventListener('mousemove', (e) => {
-        const seekBar = plyrContainer.querySelector('.plyr__progress input[type="range"]');
-        if (!seekBar) return;
+    // Wait for Plyr to be ready
+    setTimeout(() => {
+        const plyrContainer = document.querySelector('.plyr');
+        if (!plyrContainer) return;
         
-        const rect = seekBar.getBoundingClientRect();
-        if (e.clientY >= rect.top - 20 && e.clientY <= rect.bottom + 20) {
+        const seekInput = plyrContainer.querySelector('.plyr__progress input[type="range"]');
+        if (!seekInput) return;
+        
+        // Desktop: Mouse events on seek bar
+        seekInput.addEventListener('mouseenter', () => {
             isHovering = true;
-            updatePreview(e);
-        } else {
+        });
+        
+        seekInput.addEventListener('mousemove', (e) => {
+            isHovering = true;
+            const rect = seekInput.getBoundingClientRect();
+            updatePreview(e.clientX, rect);
+        });
+        
+        seekInput.addEventListener('mouseleave', () => {
+            isHovering = false;
             hidePreview();
-        }
-    });
-    
-    plyrContainer.addEventListener('mouseleave', hidePreview);
-    
-    // Touch events
-    plyrContainer.addEventListener('touchmove', (e) => {
-        const seekBar = plyrContainer.querySelector('.plyr__progress input[type="range"]');
-        if (!seekBar) return;
+        });
         
-        const touch = e.touches[0];
-        const rect = seekBar.getBoundingClientRect();
+        // Mobile: Touch events on seek bar
+        seekInput.addEventListener('touchstart', (e) => {
+            isSeeking = true;
+            const rect = seekInput.getBoundingClientRect();
+            const touch = e.touches[0];
+            updatePreview(touch.clientX, rect);
+        });
         
-        if (touch.clientY >= rect.top - 20 && touch.clientY <= rect.bottom + 20) {
-            isHovering = true;
-            updatePreview(e);
-        }
-    });
-    
-    plyrContainer.addEventListener('touchend', hidePreview);
+        seekInput.addEventListener('touchmove', (e) => {
+            isSeeking = true;
+            const rect = seekInput.getBoundingClientRect();
+            const touch = e.touches[0];
+            updatePreview(touch.clientX, rect);
+        });
+        
+        seekInput.addEventListener('touchend', () => {
+            hidePreview();
+        });
+        
+        seekInput.addEventListener('touchcancel', () => {
+            hidePreview();
+        });
+        
+    }, 1000);
 }
 
 // Setup download button
@@ -567,13 +523,11 @@ function setupShareButton() {
             if (navigator.share) {
                 await navigator.share(shareData);
             } else {
-                // Fallback: copy to clipboard
                 await navigator.clipboard.writeText(window.location.href);
                 alert('Link copied to clipboard!');
             }
         } catch (err) {
             console.log('Share failed:', err);
-            // Final fallback
             const tempInput = document.createElement('input');
             tempInput.value = window.location.href;
             document.body.appendChild(tempInput);
@@ -606,13 +560,12 @@ function initPlayer(videoUrl) {
             'duration',
             'mute',
             'volume',
-            'captions',
             'settings',
             'pip',
             'airplay',
             'fullscreen'
         ],
-        settings: ['captions', 'quality', 'speed'],
+        settings: ['quality', 'speed'],
         speed: { 
             selected: 1, 
             options: [0.5, 0.75, 1, 1.25, 1.5, 2] 
@@ -623,7 +576,7 @@ function initPlayer(videoUrl) {
         },
         keyboard: { 
             focused: true, 
-            global: false  // We handle this ourselves
+            global: false
         },
         fullscreen: { 
             enabled: true, 
@@ -632,6 +585,7 @@ function initPlayer(videoUrl) {
         },
         ratio: '16:9',
         autoplay: false,
+        clickToPlay: true,
         storage: { enabled: true, key: 'plyr_volume' }
     };
     
@@ -652,17 +606,6 @@ function initPlayer(videoUrl) {
                 console.log('HLS manifest parsed:', data);
                 hideLoading();
                 showVideo();
-                
-                const qualityOptions = data.levels.map(level => level.height);
-                playerConfig.quality = {
-                    default: qualityOptions[0],
-                    options: qualityOptions,
-                    forced: true,
-                    onChange: (newQuality) => {
-                        const levels = hls.levels;
-                        hls.currentLevel = levels.findIndex(level => level.height === newQuality);
-                    }
-                };
                 
                 player = new Plyr(videoElement, playerConfig);
                 setupPlayerFeatures();
@@ -744,14 +687,14 @@ function initPlayer(videoUrl) {
 function setupPlayerFeatures() {
     setupPlayerEvents();
     setupKeyboardShortcuts();
-    setupDoubleTapControls();
     setupBufferMonitoring();
     setupPositionSaving();
     setupDownloadButton();
     setupShareButton();
     
-    // Setup seek preview after a slight delay to ensure Plyr is ready
+    // Setup double tap and seek preview with delay
     setTimeout(() => {
+        setupDoubleTapControls();
         setupSeekPreview();
     }, 500);
     
@@ -759,12 +702,6 @@ function setupPlayerFeatures() {
     const savedPos = loadPosition();
     if (savedPos > 0 && savedPos < videoElement.duration - 10) {
         videoElement.currentTime = savedPos;
-    }
-    
-    // Detect in-app browser
-    const inAppBrowser = detectInAppBrowser();
-    if (inAppBrowser) {
-        console.log('Running in', inAppBrowser, 'in-app browser');
     }
 }
 
@@ -795,7 +732,7 @@ function setupPlayerEvents() {
         console.log('Playback ended');
         const statusValue = document.getElementById('status-value');
         if (statusValue) statusValue.textContent = 'Ended';
-        savePosition(0); // Reset position
+        savePosition(0);
     });
     
     player.on('timeupdate', () => {
@@ -809,23 +746,9 @@ function setupPlayerEvents() {
         console.error('Player error:', error);
     });
     
-    // Auto-pause when tab is hidden
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden && player && !player.paused) {
-            player.pause();
-            console.log('Auto-paused: tab hidden');
-        }
-    });
-    
-    // Prevent context menu on video (security feature)
+    // Prevent context menu on video
     videoElement.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-    });
-    
-    // Prevent double-click fullscreen on video (let overlays handle it)
-    videoElement.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
     });
 }
 
@@ -853,22 +776,19 @@ window.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('beforeunload', function() {
     if (videoElement && !videoElement.paused) {
         savePosition(videoElement.currentTime);
-        videoElement.pause();
     }
     
-    // Cleanup intervals
     if (bufferUpdateInterval) clearInterval(bufferUpdateInterval);
     if (positionSaveInterval) clearInterval(positionSaveInterval);
+    if (previewVideo) {
+        previewVideo.remove();
+        previewVideo = null;
+    }
 });
 
 // Handle page visibility
 document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        console.log('Page hidden');
-        if (videoElement && !videoElement.paused) {
-            savePosition(videoElement.currentTime);
-        }
-    } else {
-        console.log('Page visible');
+    if (document.hidden && videoElement && !videoElement.paused) {
+        savePosition(videoElement.currentTime);
     }
 });
