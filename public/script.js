@@ -397,6 +397,22 @@ function setupSeekPreview() {
     previewCanvas.height = 90;
     
     let isHovering = false;
+    let previewVideo = null;
+    
+    // Create a hidden video element for preview frames
+    function initPreviewVideo() {
+        if (previewVideo) return;
+        
+        previewVideo = document.createElement('video');
+        previewVideo.style.display = 'none';
+        previewVideo.crossOrigin = 'anonymous';
+        previewVideo.muted = true;
+        previewVideo.preload = 'metadata';
+        previewVideo.src = videoElement.src;
+        document.body.appendChild(previewVideo);
+        
+        console.log('Preview video initialized');
+    }
     
     function updatePreview(e) {
         if (!videoElement || !videoElement.duration) return;
@@ -429,12 +445,48 @@ function setupSeekPreview() {
         preview.style.left = `${previewX}px`;
         preview.classList.add('visible');
         
-        // Capture video frame
+        // Capture video frame at hover position
+        try {
+            // Initialize preview video if needed
+            if (!previewVideo) {
+                initPreviewVideo();
+            }
+            
+            // Method 1: Try to seek preview video (most accurate)
+            if (previewVideo && previewVideo.readyState >= 2) {
+                previewVideo.currentTime = time;
+                
+                // Wait a tiny bit for seek to complete, then draw
+                setTimeout(() => {
+                    try {
+                        ctx.drawImage(previewVideo, 0, 0, previewCanvas.width, previewCanvas.height);
+                    } catch (err) {
+                        // Fallback: draw from main video
+                        drawCurrentFrame();
+                    }
+                }, 50);
+            } else {
+                // Method 2: Draw from current playing video (fallback)
+                drawCurrentFrame();
+            }
+        } catch (err) {
+            console.log('Frame capture error:', err);
+            // Show a placeholder or current frame
+            drawCurrentFrame();
+        }
+    }
+    
+    function drawCurrentFrame() {
         try {
             ctx.drawImage(videoElement, 0, 0, previewCanvas.width, previewCanvas.height);
         } catch (err) {
-            // Video may not be ready for capture
-            console.log('Frame capture not available');
+            // If even this fails, draw a dark background
+            ctx.fillStyle = '#1a1f3a';
+            ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+            ctx.fillStyle = '#667eea';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Preview', previewCanvas.width / 2, previewCanvas.height / 2);
         }
     }
     
@@ -756,7 +808,7 @@ function setupPlayerEvents() {
         }
     });
     
-    // Prevent context menu on video
+    // Prevent context menu on video (security feature)
     videoElement.addEventListener('contextmenu', (e) => {
         e.preventDefault();
     });
