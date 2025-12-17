@@ -3,30 +3,35 @@ const BOT_API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:8080'
     : 'https://telegram-download-link-generator-6ds6.onrender.com';
 
-// Anti-inspection protection
+// Anti-inspection protection (lighter version)
 (function() {
     'use strict';
-    document.addEventListener('contextmenu', e => e.preventDefault());
     
-    const devtools = { open: false };
-    const threshold = 160;
-    
-    setInterval(() => {
-        if (window.outerWidth - window.innerWidth > threshold || 
-            window.outerHeight - window.innerHeight > threshold) {
-            if (!devtools.open) {
-                devtools.open = true;
-                document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:50vh;">Developer tools detected. Access denied.</h1>';
-            }
+    // Only disable right-click on video element, not entire page
+    document.addEventListener('DOMContentLoaded', () => {
+        const video = document.getElementById('video');
+        if (video) {
+            video.addEventListener('contextmenu', e => e.preventDefault());
         }
-    }, 500);
+    });
     
+    // Disable keyboard shortcuts for inspect
     document.addEventListener('keydown', e => {
+        // Allow controls to work, only block inspect shortcuts
         if (e.key === 'F12' || 
             (e.ctrlKey && e.shiftKey && e.key === 'I') ||
             (e.ctrlKey && e.key === 'u')) {
             e.preventDefault();
             return false;
+        }
+    });
+    
+    // Disable text selection only on video
+    document.addEventListener('DOMContentLoaded', () => {
+        const video = document.getElementById('video');
+        if (video) {
+            video.style.userSelect = 'none';
+            video.style.webkitUserSelect = 'none';
         }
     });
 })();
@@ -347,6 +352,12 @@ function fallbackCopyToClipboard(text) {
 }
 
 function showNotification(message, type = 'info') {
+    // Only show for user actions (download, share, copy)
+    // Don't show for automatic events
+    if (message.includes('ready') || message.includes('Buffering') || message.includes('Resumed')) {
+        return; // Skip these notifications
+    }
+    
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
@@ -362,10 +373,12 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Update buffer continuously
+// Update buffer continuously (no notifications)
 function updateBufferProgress(videoElement) {
     const bufferInfo = document.querySelector('.buffer-info');
     if (!bufferInfo) return;
+    
+    let lastBufferPercent = 0;
     
     setInterval(() => {
         try {
@@ -376,10 +389,11 @@ function updateBufferProgress(videoElement) {
                 if (duration && duration > 0) {
                     const percentBuffered = Math.round((bufferedEnd / duration) * 100);
                     bufferInfo.textContent = `${percentBuffered}%`;
+                    lastBufferPercent = percentBuffered;
                 }
             }
         } catch (e) {
-            // Ignore errors
+            // Silently ignore errors
         }
     }, 500);
 }
@@ -493,9 +507,13 @@ function setupPlayerFeatures(player, videoElement, videoUrl) {
     addDownloadShareButtons(videoUrl);
     updateBufferProgress(videoElement);
     
-    // Keyboard shortcuts
+    // Keyboard shortcuts (only when not typing)
     document.addEventListener('keydown', (e) => {
+        // Ignore if typing in input fields
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        // Ignore if modifier keys are pressed (for browser shortcuts)
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
         
         switch(e.key.toLowerCase()) {
             case 'k':
@@ -530,7 +548,7 @@ function setupPlayerFeatures(player, videoElement, videoUrl) {
         }
     });
     
-    // Save position
+    // Save position (silently, no notifications)
     const videoId = new URLSearchParams(window.location.search).get('file');
     if (videoId) {
         const savedPosition = localStorage.getItem(`video_pos_${videoId}`);
@@ -545,11 +563,20 @@ function setupPlayerFeatures(player, videoElement, videoUrl) {
         }, 5000);
     }
     
-    // Pause when tab hidden
+    // Pause when tab hidden (no notification)
     document.addEventListener('visibilitychange', function() {
         if (document.hidden && !player.paused) {
             player.pause();
         }
+    });
+    
+    // Remove any "Player ready" or "Buffering complete" notifications
+    player.on('ready', () => {
+        console.log('Player ready');
+    });
+    
+    player.on('playing', () => {
+        console.log('Playing');
     });
 }
 
