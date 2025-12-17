@@ -367,6 +367,8 @@ function setupDoubleTapControls() {
         let clickTimeout = null;
         
         overlay.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent default behavior
+            e.stopPropagation(); // Stop event bubbling
             clickCount++;
             
             if (clickCount === 1) {
@@ -376,8 +378,15 @@ function setupDoubleTapControls() {
             } else if (clickCount === 2) {
                 clearTimeout(clickTimeout);
                 clickCount = 0;
+                e.preventDefault(); // Prevent fullscreen toggle
                 handleDoubleTap(direction);
             }
+        });
+        
+        // Also prevent dblclick event to stop fullscreen toggle
+        overlay.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
         });
     });
 }
@@ -811,6 +820,12 @@ function setupPlayerEvents() {
     // Prevent context menu on video (security feature)
     videoElement.addEventListener('contextmenu', (e) => {
         e.preventDefault();
+    });
+    
+    // Prevent double-click fullscreen on video (let overlays handle it)
+    videoElement.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
     });
 }
 
