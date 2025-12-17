@@ -3,13 +3,6 @@ const BOT_API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:8080'
     : 'https://telegram-download-link-generator-6ds6.onrender.com';
 
-// Minimal protection - only blocks inspect tools
-document.addEventListener('keydown', e => {
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.key === 'u')) {
-        e.preventDefault();
-    }
-});
-
 // Get video URL
 function getVideoUrl() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -113,7 +106,7 @@ function addDoubleTapControls(videoElement, player) {
     const videoWrapper = videoElement.closest('.video-wrapper');
     if (!videoWrapper) return;
     
-    // Create overlay container
+    // Create overlay container that sits BEHIND Plyr controls
     const overlay = document.createElement('div');
     overlay.className = 'double-tap-overlay';
     overlay.style.cssText = `
@@ -123,15 +116,15 @@ function addDoubleTapControls(videoElement, player) {
         width: 100%;
         height: 100%;
         display: flex;
-        z-index: 100;
-        pointer-events: auto;
+        z-index: 1;
+        pointer-events: none;
     `;
     
     // Left and right tap zones
     const leftZone = document.createElement('div');
-    leftZone.style.cssText = 'flex: 1; position: relative;';
+    leftZone.style.cssText = 'flex: 1; position: relative; pointer-events: auto;';
     const rightZone = document.createElement('div');
-    rightZone.style.cssText = 'flex: 1; position: relative;';
+    rightZone.style.cssText = 'flex: 1; position: relative; pointer-events: auto;';
     
     // Tap indicators
     const leftIndicator = document.createElement('div');
@@ -197,11 +190,6 @@ function addDoubleTapControls(videoElement, player) {
     // Click events (desktop)
     leftZone.addEventListener('click', (e) => handleTap('left', e));
     rightZone.addEventListener('click', (e) => handleTap('right', e));
-    
-    // Prevent default touch behavior
-    overlay.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-    }, { passive: true });
     
     function showTapFeedback(indicator) {
         indicator.classList.add('active');
