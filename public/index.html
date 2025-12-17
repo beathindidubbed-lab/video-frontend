@@ -37,7 +37,6 @@
             -webkit-user-select: none;
         }
         
-        /* Animated background */
         body::before {
             content: '';
             position: fixed;
@@ -60,7 +59,6 @@
             padding: 2rem 1rem;
         }
         
-        /* Header */
         .header {
             text-align: center;
             margin-bottom: 3rem;
@@ -96,7 +94,6 @@
             margin-top: 0.5rem;
         }
         
-        /* Video Container */
         #video-container {
             display: none;
             max-width: 1200px;
@@ -125,14 +122,15 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
         
-        /* Double Tap Overlay */
+        /* Double Tap Overlays - FIXED */
         .tap-overlay {
             position: absolute;
             top: 0;
             width: 40%;
             height: 100%;
-            z-index: 100;
-            pointer-events: none;
+            z-index: 1000;
+            pointer-events: auto;
+            cursor: pointer;
         }
         
         .tap-overlay-left {
@@ -183,10 +181,10 @@
             }
         }
         
-        /* Seek Bar Preview */
+        /* Seek Bar Preview - FIXED */
         .seek-preview {
-            position: absolute;
-            bottom: 80px;
+            position: fixed;
+            bottom: 100px;
             left: 0;
             background: rgba(0, 0, 0, 0.95);
             border: 3px solid rgba(102, 126, 234, 0.6);
@@ -194,18 +192,16 @@
             padding: 6px;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.15s ease;
-            z-index: 1000;
+            transition: opacity 0.2s ease;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-            transform: translateY(0);
         }
         
         .seek-preview.visible {
             opacity: 1;
-            transform: translateY(-5px);
         }
         
         .seek-preview-thumbnail {
@@ -248,7 +244,6 @@
             border-top: 8px solid rgba(0, 0, 0, 0.9);
         }
         
-        /* Action Buttons */
         .action-buttons {
             display: flex;
             gap: 1rem;
@@ -295,7 +290,7 @@
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
         
-        /* Video Info */
+        /* Video Info - FIXED to show only Buffer Progress */
         .video-info {
             margin-top: 1.5rem;
             padding: 1.5rem;
@@ -331,7 +326,6 @@
             font-weight: 600;
         }
         
-        /* Loading State */
         #loading-indicator {
             display: flex;
             flex-direction: column;
@@ -414,7 +408,6 @@
             animation: progress 2s ease-in-out infinite;
         }
         
-        /* Error/Empty State */
         .state-message {
             display: flex;
             flex-direction: column;
@@ -486,7 +479,6 @@
             box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
         }
         
-        /* Features Grid */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -537,7 +529,6 @@
             font-size: 0.95rem;
         }
         
-        /* Footer */
         .footer {
             text-align: center;
             margin-top: 4rem;
@@ -550,7 +541,6 @@
             font-size: 0.9rem;
         }
         
-        /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -593,7 +583,6 @@
             100% { width: 100%; }
         }
         
-        /* Responsive Design */
         @media (max-width: 768px) {
             .logo h1 {
                 font-size: 2rem;
@@ -634,9 +623,12 @@
             .action-btn {
                 min-width: 100%;
             }
+            
+            .seek-preview {
+                bottom: 80px;
+            }
         }
         
-        /* Plyr Customization */
         .plyr {
             border-radius: 12px;
         }
@@ -729,6 +721,7 @@
                     </button>
                 </div>
                 
+                <!-- Video Info - Only showing 3 items now -->
                 <div class="video-info">
                     <div class="info-grid">
                         <div class="info-item">
@@ -750,13 +743,6 @@
                             <div>
                                 <div class="info-label">Watch Time</div>
                                 <div class="info-value" id="watch-time-value">0:00</div>
-                            </div>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-bolt"></i>
-                            <div>
-                                <div class="info-label">Quality</div>
-                                <div class="info-value">Adaptive</div>
                             </div>
                         </div>
                     </div>
