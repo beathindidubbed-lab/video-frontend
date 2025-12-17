@@ -280,17 +280,16 @@ function setupKeyboardShortcuts() {
     });
 }
 
-// Setup double tap controls - FIXED VERSION
+// Setup double tap controls - PROPERLY FIXED VERSION
 function setupDoubleTapControls() {
+    const videoElement = document.getElementById('video');
     const playerContainer = document.querySelector('.player-container');
     const leftOverlay = document.querySelector('.tap-overlay-left');
     const rightOverlay = document.querySelector('.tap-overlay-right');
     
-    if (!playerContainer || !leftOverlay || !rightOverlay) return;
+    if (!playerContainer || !leftOverlay || !rightOverlay || !videoElement) return;
     
     function handleDoubleTap(direction) {
-        if (!videoElement) return;
-        
         const feedback = direction === 'left' 
             ? leftOverlay.querySelector('.tap-feedback')
             : rightOverlay.querySelector('.tap-feedback');
@@ -306,46 +305,44 @@ function setupDoubleTapControls() {
         }
     }
     
-    // Make overlays always visible and on top
-    leftOverlay.style.pointerEvents = 'auto';
-    rightOverlay.style.pointerEvents = 'auto';
-    leftOverlay.style.zIndex = '1000';
-    rightOverlay.style.zIndex = '1000';
+    // Only enable overlays on the video itself, not over controls
+    const plyrVideo = document.querySelector('.plyr__video-wrapper');
     
-    // Touch event handler for both overlays
-    [leftOverlay, rightOverlay].forEach((overlay, index) => {
-        const direction = index === 0 ? 'left' : 'right';
+    if (plyrVideo) {
         let lastTouchTime = 0;
-        let touchTimeout = null;
+        let touchX = 0;
+        let touchY = 0;
         
-        overlay.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
+        plyrVideo.addEventListener('touchend', (e) => {
             const currentTime = new Date().getTime();
             const tapGap = currentTime - lastTouchTime;
             
+            // Get touch position
+            const touch = e.changedTouches[0];
+            touchX = touch.clientX;
+            touchY = touch.clientY;
+            
+            // Check if it's a double tap
             if (tapGap < 400 && tapGap > 0) {
-                // Double tap detected
-                clearTimeout(touchTimeout);
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Determine left or right side
+                const rect = plyrVideo.getBoundingClientRect();
+                const relativeX = touchX - rect.left;
+                const direction = relativeX < rect.width / 2 ? 'left' : 'right';
+                
                 handleDoubleTap(direction);
-            } else {
-                // First tap - wait for potential second tap
-                touchTimeout = setTimeout(() => {
-                    // Single tap - do nothing (let Plyr handle play/pause)
-                }, 400);
             }
             
             lastTouchTime = currentTime;
         });
         
-        // Desktop double click support
+        // Desktop double click
         let clickCount = 0;
         let clickTimeout = null;
         
-        overlay.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        plyrVideo.addEventListener('click', (e) => {
             clickCount++;
             
             if (clickCount === 1) {
@@ -355,10 +352,19 @@ function setupDoubleTapControls() {
             } else if (clickCount === 2) {
                 clearTimeout(clickTimeout);
                 clickCount = 0;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Determine left or right side
+                const rect = plyrVideo.getBoundingClientRect();
+                const relativeX = e.clientX - rect.left;
+                const direction = relativeX < rect.width / 2 ? 'left' : 'right';
+                
                 handleDoubleTap(direction);
             }
         });
-    });
+    }
 }
 
 // Setup seek bar preview - FIXED VERSION
