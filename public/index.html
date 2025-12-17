@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Video Player - Stream Your Content</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,6 +11,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
         :root {
@@ -32,9 +33,10 @@
             color: var(--text-primary);
             position: relative;
             overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
-        /* Animated background */
         body::before {
             content: '';
             position: fixed;
@@ -57,7 +59,6 @@
             padding: 2rem 1rem;
         }
         
-        /* Header */
         .header {
             text-align: center;
             margin-bottom: 3rem;
@@ -108,12 +109,158 @@
             padding: 1.5rem;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
         }
         
         #video {
             width: 100%;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Double Tap Overlay */
+        .double-tap-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+            z-index: 10;
+            display: flex;
+        }
+        
+        .double-tap-overlay > div {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tap-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tap-indicator.active {
+            opacity: 1;
+            animation: tapPulse 0.6s ease;
+        }
+        
+        .tap-left {
+            left: 10%;
+        }
+        
+        .tap-right {
+            right: 10%;
+        }
+        
+        .tap-indicator i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .tap-indicator span {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        @keyframes tapPulse {
+            0% {
+                transform: translateY(-50%) scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-50%) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        /* Download Button */
+        .download-btn {
+            background: transparent !important;
+        }
+        
+        .download-btn:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .download-btn i {
+            font-size: 1.2rem;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 10000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-success {
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .notification-info {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .notification-error {
+            border-left: 4px solid var(--error-color);
+        }
+        
+        .notification i {
+            font-size: 1.5rem;
+        }
+        
+        .notification-success i {
+            color: var(--success-color);
+        }
+        
+        .notification-info i {
+            color: var(--primary-color);
+        }
+        
+        .notification-error i {
+            color: var(--error-color);
+        }
+        
+        .notification span {
+            font-size: 1rem;
+            font-weight: 500;
         }
         
         .video-info {
@@ -151,7 +298,6 @@
             font-weight: 600;
         }
         
-        /* Loading State */
         #loading-indicator {
             display: flex;
             flex-direction: column;
@@ -234,7 +380,6 @@
             animation: progress 2s ease-in-out infinite;
         }
         
-        /* Error/Empty State */
         .state-message {
             display: flex;
             flex-direction: column;
@@ -306,7 +451,6 @@
             box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
         }
         
-        /* Features Grid */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -357,7 +501,6 @@
             font-size: 0.95rem;
         }
         
-        /* Footer */
         .footer {
             text-align: center;
             margin-top: 4rem;
@@ -370,7 +513,6 @@
             font-size: 0.9rem;
         }
         
-        /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -413,7 +555,6 @@
             100% { width: 100%; }
         }
         
-        /* Responsive Design */
         @media (max-width: 768px) {
             .logo h1 {
                 font-size: 2rem;
@@ -446,9 +587,27 @@
             .info-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .notification {
+                right: 10px;
+                left: 10px;
+                top: 10px;
+            }
+            
+            .tap-indicator {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .tap-indicator i {
+                font-size: 1.8rem;
+            }
+            
+            .tap-indicator span {
+                font-size: 1rem;
+            }
         }
         
-        /* Plyr Customization */
         .plyr {
             border-radius: 12px;
         }
@@ -501,7 +660,7 @@
         
         <div id="video-container">
             <div class="video-wrapper">
-                <video id="video" controls playsinline></video>
+                <video id="video" controls playsinline webkit-playsinline></video>
                 
                 <div class="video-info">
                     <div class="info-grid">
@@ -516,7 +675,7 @@
                             <i class="fas fa-shield-alt"></i>
                             <div>
                                 <div class="info-label">Security</div>
-                                <div class="info-value">Secure Stream</div>
+                                <div class="info-value">Protected</div>
                             </div>
                         </div>
                         <div class="info-item">
@@ -533,7 +692,7 @@
     </div>
     
     <div class="footer">
-        <p>Powered by Advanced Video Streaming Technology</p>
+        <p>🔒 Powered by Advanced Video Streaming Technology • Secure & Protected</p>
     </div>
     
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
