@@ -280,7 +280,7 @@ function setupKeyboardShortcuts() {
     });
 }
 
-// Setup double tap controls - PROPERLY FIXED VERSION
+// Setup double tap controls - FIXED to prevent fullscreen trigger
 function setupDoubleTapControls() {
     const videoElement = document.getElementById('video');
     const playerContainer = document.querySelector('.player-container');
@@ -305,66 +305,69 @@ function setupDoubleTapControls() {
         }
     }
     
-    // Only enable overlays on the video itself, not over controls
-    const plyrVideo = document.querySelector('.plyr__video-wrapper');
-    
-    if (plyrVideo) {
+    // Wait for Plyr to initialize
+    setTimeout(() => {
+        const plyrVideo = document.querySelector('.plyr__video-wrapper');
+        if (!plyrVideo) return;
+        
+        // MOBILE: Touch events
         let lastTouchTime = 0;
-        let touchX = 0;
-        let touchY = 0;
+        let lastTouchX = 0;
         
         plyrVideo.addEventListener('touchend', (e) => {
             const currentTime = new Date().getTime();
             const tapGap = currentTime - lastTouchTime;
             
-            // Get touch position
             const touch = e.changedTouches[0];
-            touchX = touch.clientX;
-            touchY = touch.clientY;
+            const touchX = touch.clientX;
             
-            // Check if it's a double tap
-            if (tapGap < 400 && tapGap > 0) {
+            // Check if it's a double tap (within 300ms)
+            if (tapGap < 300 && tapGap > 0) {
+                // CRITICAL: Prevent fullscreen toggle
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 
-                // Determine left or right side
+                // Determine direction
                 const rect = plyrVideo.getBoundingClientRect();
                 const relativeX = touchX - rect.left;
                 const direction = relativeX < rect.width / 2 ? 'left' : 'right';
                 
                 handleDoubleTap(direction);
+                
+                // Reset to prevent triple tap issues
+                lastTouchTime = 0;
+            } else {
+                lastTouchTime = currentTime;
+                lastTouchX = touchX;
             }
-            
-            lastTouchTime = currentTime;
         });
         
-        // Desktop double click
+        // DESKTOP: Double click (but don't interfere with single clicks)
         let clickCount = 0;
         let clickTimeout = null;
+        let lastClickX = 0;
         
-        plyrVideo.addEventListener('click', (e) => {
-            clickCount++;
+        plyrVideo.addEventListener('dblclick', (e) => {
+            // CRITICAL: Prevent fullscreen toggle on double click
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
             
-            if (clickCount === 1) {
-                clickTimeout = setTimeout(() => {
-                    clickCount = 0;
-                }, 400);
-            } else if (clickCount === 2) {
-                clearTimeout(clickTimeout);
-                clickCount = 0;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Determine left or right side
-                const rect = plyrVideo.getBoundingClientRect();
-                const relativeX = e.clientX - rect.left;
-                const direction = relativeX < rect.width / 2 ? 'left' : 'right';
-                
-                handleDoubleTap(direction);
-            }
+            // Determine direction
+            const rect = plyrVideo.getBoundingClientRect();
+            const relativeX = e.clientX - rect.left;
+            const direction = relativeX < rect.width / 2 ? 'left' : 'right';
+            
+            handleDoubleTap(direction);
         });
-    }
+        
+        // Disable Plyr's default double-click fullscreen
+        if (player) {
+            videoElement.removeEventListener('dblclick', player.toggleFullscreen);
+            plyrVideo.removeEventListener('dblclick', player.toggleFullscreen);
+        }
+    }, 800);
 }
 
 // Setup seek bar preview - FIXED VERSION
