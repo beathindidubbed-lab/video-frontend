@@ -180,23 +180,25 @@
             }
         }
         
-        /* Seek Bar Preview - FIXED */
+       /* Seek Bar Preview - FIXED positioning and performance */
         .seek-preview {
             position: fixed;
-            bottom: 100px;
             left: 0;
+            top: 0;
             background: rgba(0, 0, 0, 0.95);
             border: 3px solid rgba(102, 126, 234, 0.6);
             border-radius: 8px;
             padding: 6px;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.2s ease;
-            z-index: 9999;
+            transition: opacity 0.15s ease;
+            z-index: 99999;
             display: flex;
             flex-direction: column;
             align-items: center;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            will-change: transform, opacity;
+            transform: translateZ(0); /* Enable GPU acceleration */
         }
         
         .seek-preview.visible {
@@ -218,16 +220,18 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
         
         .seek-preview-time {
             color: white;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            padding: 4px 8px;
-            background: rgba(102, 126, 234, 0.8);
+            padding: 4px 10px;
+            background: rgba(102, 126, 234, 0.9);
             border-radius: 4px;
             white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
         
         .seek-preview::after {
@@ -240,7 +244,7 @@
             height: 0;
             border-left: 8px solid transparent;
             border-right: 8px solid transparent;
-            border-top: 8px solid rgba(0, 0, 0, 0.9);
+            border-top: 8px solid rgba(0, 0, 0, 0.95);
         }
         
         .action-buttons {
