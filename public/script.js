@@ -370,102 +370,142 @@ function setupDoubleTapControls() {
     }, 800);
 }
 
-// Setup seek bar preview - FIXED VERSION
-function setupSeekPreview() {
-    const preview = document.getElementById('seek-preview');
-    const previewCanvas = document.getElementById('preview-canvas');
-    const previewTime = document.getElementById('preview-time');
-    
-    if (!preview || !previewCanvas || !videoElement) return;
-    
-    const ctx = previewCanvas.getContext('2d');
-    previewCanvas.width = 160;
-    previewCanvas.height = 90;
-    
-    let isHovering = false;
-    let isSeeking = false;
-    
-    // Initialize preview video element
-    function initPreviewVideo() {
-        if (previewVideo) return;
+// Setup seek bar preview - YouTube Style
+    function setupSeekPreview() {
+        const seekPreview = document.getElementById('seek-preview');
+        const previewCanvas = document.getElementById('preview-canvas');
+        const previewTime = document.getElementById('preview-time');
         
-        previewVideo = document.createElement('video');
-        previewVideo.style.display = 'none';
-        previewVideo.crossOrigin = 'anonymous';
-        previewVideo.muted = true;
-        previewVideo.preload = 'auto';
-        previewVideo.src = videoElement.src;
-        document.body.appendChild(previewVideo);
+        if (!seekPreview || !previewCanvas || !videoElement) return;
         
-        previewVideo.addEventListener('seeked', () => {
-            drawFrame(previewVideo);
-        });
-    }
-    
-    function drawFrame(sourceVideo) {
-        try {
-            ctx.drawImage(sourceVideo, 0, 0, previewCanvas.width, previewCanvas.height);
-        } catch (err) {
-            // Fallback to gradient background
-            ctx.fillStyle = '#1a1f3a';
-            ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-            ctx.fillStyle = '#667eea';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Preview', previewCanvas.width / 2, previewCanvas.height / 2);
-        }
-    }
-    
-    function updatePreview(clientX, rect) {
-        if (!videoElement || !videoElement.duration) return;
+        const ctx = previewCanvas.getContext('2d');
+        previewCanvas.width = 160;
+        previewCanvas.height = 90;
         
-        const x = clientX - rect.left;
-        const percentage = Math.max(0, Math.min(1, x / rect.width));
-        const time = percentage * videoElement.duration;
+        let isHovering = false;
+        let isSeeking = false;
         
-        // Update time display
-        previewTime.textContent = formatTime(time);
-        
-        // Position preview to follow mouse/touch horizontally
-        const previewWidth = preview.offsetWidth;
-        const previewHeight = preview.offsetHeight;
-        let previewX = rect.left + (percentage * rect.width);
-        
-        // Keep preview within viewport bounds
-        const minX = previewWidth / 2 + 10;
-        const maxX = window.innerWidth - previewWidth / 2 - 10;
-        previewX = Math.max(minX, Math.min(maxX, previewX));
-        
-        // Position preview above the seek bar with proper offset
-        const previewY = rect.top - previewHeight - 15;
-        
-        preview.style.left = `${previewX}px`;
-        preview.style.top = `${previewY}px`;
-        preview.style.transform = 'translateX(-50%)';
-        preview.classList.add('visible');
-        
-        // Initialize and update preview video
-        if (!previewVideo) {
-            initPreviewVideo();
+        // Initialize preview video element
+        function initPreviewVideo() {
+            if (previewVideo) return;
+            
+            previewVideo = document.createElement('video');
+            previewVideo.style.display = 'none';
+            previewVideo.crossOrigin = 'anonymous';
+            previewVideo.muted = true;
+            previewVideo.preload = 'auto';
+            previewVideo.src = videoElement.src;
+            document.body.appendChild(previewVideo);
+            
+            previewVideo.addEventListener('seeked', () => {
+                drawFrame(previewVideo);
+            });
         }
         
-        if (previewVideo && previewVideo.readyState >= 2) {
-            previewVideo.currentTime = time;
-        } else {
-            drawFrame(videoElement);
-        }
-    }
-    
-    function hidePreview() {
-        isHovering = false;
-        isSeeking = false;
-        setTimeout(() => {
-            if (!isHovering && !isSeeking) {
-                preview.classList.remove('visible');
+        function drawFrame(sourceVideo) {
+            try {
+                ctx.drawImage(sourceVideo, 0, 0, previewCanvas.width, previewCanvas.height);
+            } catch (err) {
+                // Fallback to gradient background
+                ctx.fillStyle = '#1a1f3a';
+                ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+                ctx.fillStyle = '#667eea';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Preview', previewCanvas.width / 2, previewCanvas.height / 2);
             }
-        }, 150);
-    }
-    
+        }
+        
+        function updatePreview(progressBar, clientX) {
+            if (!videoElement || !videoElement.duration) return;
+            
+            const rect = progressBar.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, x / rect.width));
+            const time = percentage * videoElement.duration;
+            
+            // Update time display
+            previewTime.textContent = formatTime(time);
+            
+            // Position relative to progress bar using percentage
+            const leftPosition = percentage * 100;
+            seekPreview.style.left = `${leftPosition}%`;
+            seekPreview.classList.add('visible');
+            
+            // Initialize and update preview video
+            if (!previewVideo) {
+                initPreviewVideo();
+            }
+            
+            if (previewVideo && previewVideo.readyState >= 2) {
+                previewVideo.currentTime = time;
+            } else {
+                drawFrame(videoElement);
+            }
+        }
+        
+        function hidePreview() {
+            isHovering = false;
+            isSeeking = false;
+            setTimeout(() => {
+                if (!isHovering && !isSeeking) {
+                    seekPreview.classList.remove('visible');
+                }
+            }, 150);
+        }
+        
+        // Wait for Plyr to be ready
+        setTimeout(() => {
+            const plyrContainer = document.querySelector('.plyr');
+            if (!plyrContainer) return;
+            
+            const progressContainer = plyrContainer.querySelector('.plyr__progress');
+            const seekInput = plyrContainer.querySelector('.plyr__progress input[type="range"]');
+            
+            if (!progressContainer || !seekInput) return;
+            
+            // Append preview to progress container (YouTube style)
+            progressContainer.style.position = 'relative';
+            progressContainer.appendChild(seekPreview);
+            
+            // Desktop: Mouse events
+            seekInput.addEventListener('mouseenter', () => {
+                isHovering = true;
+            });
+            
+            seekInput.addEventListener('mousemove', (e) => {
+                isHovering = true;
+                updatePreview(seekInput, e.clientX);
+            });
+            
+            seekInput.addEventListener('mouseleave', () => {
+                isHovering = false;
+                hidePreview();
+            });
+            
+            // Mobile: Touch events
+            seekInput.addEventListener('touchstart', (e) => {
+                isSeeking = true;
+                const touch = e.touches[0];
+                updatePreview(seekInput, touch.clientX);
+            });
+            
+            seekInput.addEventListener('touchmove', (e) => {
+                isSeeking = true;
+                const touch = e.touches[0];
+                updatePreview(seekInput, touch.clientX);
+            });
+            
+            seekInput.addEventListener('touchend', () => {
+                hidePreview();
+            });
+            
+            seekInput.addEventListener('touchcancel', () => {
+                hidePreview();
+            });
+            
+        }, 1000);
+    }    
     // Wait for Plyr to be ready
     setTimeout(() => {
         const plyrContainer = document.querySelector('.plyr');
