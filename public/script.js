@@ -428,6 +428,7 @@ function setupSeekPreview() {
         
         // Position preview to follow mouse/touch horizontally
         const previewWidth = preview.offsetWidth;
+        const previewHeight = preview.offsetHeight;
         let previewX = rect.left + (percentage * rect.width);
         
         // Keep preview within viewport bounds
@@ -435,11 +436,12 @@ function setupSeekPreview() {
         const maxX = window.innerWidth - previewWidth / 2 - 10;
         previewX = Math.max(minX, Math.min(maxX, previewX));
         
-        // Position preview above the seek bar
-        const previewY = rect.top;
+        // Position preview above the seek bar with proper offset
+        const previewY = rect.top - previewHeight - 15;
         
         preview.style.left = `${previewX}px`;
-        preview.style.bottom = `${window.innerHeight - previewY}px`;
+        preview.style.top = `${previewY}px`;
+        preview.style.transform = 'translateX(-50%)';
         preview.classList.add('visible');
         
         // Initialize and update preview video
