@@ -418,33 +418,37 @@ function setupSeekPreview() {
     
     function updatePreview(clientX, rect) {
         if (!videoElement || !videoElement.duration) return;
-        
+    
         const x = clientX - rect.left;
         const percentage = Math.max(0, Math.min(1, x / rect.width));
         const time = percentage * videoElement.duration;
-        
-        // Update time display
-        previewTime.textContent = formatTime(time);
-        
-        // Position preview
-        let previewX = rect.left + (percentage * rect.width) - (preview.offsetWidth / 2);
-        const maxX = window.innerWidth - preview.offsetWidth - 10;
-        previewX = Math.max(10, Math.min(maxX, previewX));
-        
-        preview.style.left = `${previewX}px`;
-        preview.classList.add('visible');
-        
-        // Initialize and update preview video
-        if (!previewVideo) {
-            initPreviewVideo();
-        }
-        
-        if (previewVideo && previewVideo.readyState >= 2) {
-            previewVideo.currentTime = time;
-        } else {
-            drawFrame(videoElement);
-        }
-    }
+    
+       // Update time display
+       previewTime.textContent = formatTime(time);
+    
+       // Position preview relative to seek bar position
+       const previewWidth = preview.offsetWidth;
+       let previewX = (percentage * rect.width) - (previewWidth / 2);
+    
+       // Keep preview within bounds of the player container
+       const playerContainer = document.querySelector('.player-container');
+       const containerWidth = playerContainer ? playerContainer.offsetWidth : rect.width;
+       previewX = Math.max(0, Math.min(containerWidth - previewWidth, previewX));
+    
+       preview.style.left = `${previewX}px`;
+       preview.classList.add('visible');
+    
+       // Initialize and update preview video
+       if (!previewVideo) {
+        initPreviewVideo();
+       }
+    
+       if (previewVideo && previewVideo.readyState >= 2) {
+           previewVideo.currentTime = time;
+       } else {
+           drawFrame(videoElement);
+       }
+   }
     
     function hidePreview() {
         isHovering = false;
