@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Video Player - Stream Your Content</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --dark-bg: #0a0e27;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            position: relative;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .logo i {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .logo h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        
+        #video-container {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .video-wrapper {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .player-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        #video {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Double Tap Overlays - PROPERLY FIXED */
+        .tap-overlay {
+            position: absolute;
+            top: 0;
+            width: 40%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .tap-overlay-left {
+            left: 0;
+        }
+        
+        .tap-overlay-right {
+            right: 0;
+        }
+        
+        .tap-feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .tap-feedback i {
+            font-size: 40px;
+            color: white;
+        }
+        
+        .tap-feedback.animate {
+            animation: tapPulse 0.4s ease-out;
+        }
+        
+        @keyframes tapPulse {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        
+       /* Seek Bar Preview - FIXED positioning and performance */
+        .seek-preview {
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid rgba(102, 126, 234, 0.6);
+            border-radius: 8px;
+            padding: 6px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            will-change: transform, opacity;
+            transform: translateZ(0); /* Enable GPU acceleration */
+        }
+        
+        .seek-preview.visible {
+            opacity: 1;
+        }
+        
+        .seek-preview-thumbnail {
+            width: 160px;
+            height: 90px;
+            background: #000;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 6px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+        
+        .seek-preview-thumbnail canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .seek-preview-time {
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 10px;
+            background: rgba(102, 126, 234, 0.9);
+            border-radius: 4px;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .seek-preview::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid rgba(0, 0, 0, 0.95);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            flex: 1;
+            min-width: 150px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            border-color: var(--primary-color);
+        }
+        
+        .action-btn i {
+            font-size: 1.1rem;
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+        }
+        
+        .action-btn.primary:hover {
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Video Info - FIXED to show only Buffer Progress */
+        .video-info {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .info-item i {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+        
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        
+        #loading-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .loader-wrapper {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+        }
+        
+        .loader {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loader-inner {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite reverse;
+        }
+        
+        .loader-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            color: var(--primary-color);
+        }
+        
+        .loading-text {
+            text-align: center;
+        }
+        
+        .loading-text h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .loading-text p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .loading-progress {
+            margin-top: 2rem;
+            width: 300px;
+            max-width: 90%;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            animation: progress 2s ease-in-out infinite;
+        }
+        
+        .state-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+            padding: 2rem;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .state-icon {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+        
+        .state-icon i {
+            font-size: 3.5rem;
+            color: white;
+        }
+        
+        .state-icon.error {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+        }
+        
+        .state-content {
+            max-width: 600px;
+        }
+        
+        .state-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .state-content p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-icon i {
+            font-size: 1.8rem;
+            color: white;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        @media (max-width: 768px) {
+            .logo h1 {
+                font-size: 2rem;
+            }
+            
+            .logo i {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .state-content h1 {
+                font-size: 2rem;
+            }
+            
+            .state-content p {
+                font-size: 1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .video-wrapper {
+                padding: 1rem;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                min-width: 100%;
+            }
+            
+            .seek-preview {
+                bottom: 80px;
+            }
+        }
+        
+        .plyr {
+            border-radius: 12px;
+        }
+        
+        .plyr--video {
+            background: #000;
+        }
+        
+        .plyr__control--overlaid {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .plyr--full-ui input[type=range] {
+            color: var(--primary-color);
+        }
+        
+        .plyr__control.plyr__tab-focus,
+        .plyr__control:hover,
+        .plyr__control[aria-expanded=true] {
+            background: var(--primary-color);
+        }
+        
+        .plyr__progress__buffer {
+            color: rgba(255, 255, 255, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-play-circle"></i>
+                <h1>Video Player</h1>
+            </div>
+            <p class="subtitle">Stream your content seamlessly by Beat Anime's Player</p>
+        </div>
+        
+        <div id="loading-indicator">
+            <div class="loader-wrapper">
+                <div class="loader"></div>
+                <div class="loader-inner"></div>
+                <i class="fas fa-video loader-icon"></i>
+            </div>
+            <div class="loading-text">
+                <h2>Loading Video...</h2>
+                <p>Please wait while we prepare your content</p>
+            </div>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="video-container">
+            <div class="video-wrapper">
+                <div class="player-container">
+                    <video id="video" controls playsinline></video>
+                    
+                    <!-- Double Tap Overlays -->
+                    <div class="tap-overlay tap-overlay-left">
+                        <div class="tap-feedback">
+                            <i class="fas fa-backward"></i>
+                        </div>
+                    </div>
+                    <div class="tap-overlay tap-overlay-right">
+                        <div class="tap-feedback">
+                            <i class="fas fa-forward"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Seek Preview -->
+                    <div class="seek-preview" id="seek-preview">
+                        <div class="seek-preview-thumbnail">
+                            <canvas id="preview-canvas"></canvas>
+                        </div>
+                        <div class="seek-preview-time" id="preview-time">0:00</div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <a href="#" class="action-btn primary" id="download-btn">
+                        <i class="fas fa-download"></i>
+                        Download Video
+                    </a>
+                    <button class="action-btn" id="share-btn">
+                        <i class="fas fa-share-alt"></i>
+                        Share Video
+                    </button>
+                </div>
+                
+                <!-- Video Info - Only showing 3 items now -->
+                <div class="video-info">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <div class="info-label">Status</div>
+                                <div class="info-value" id="status-value">Ready to Play</div>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-database"></i>
+                            <div>
+                                <div class="info-label">Buffer Progress</div>
+                                <div class="info-value" id="buffer-value">0%</div>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <div class="info-label">Watch Time</div>
+                                <div class="info-value" id="watch-time-value">0:00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Powered by Advanced Video Streaming Technology by Beat Animes</p>
+    </div>
+    
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
