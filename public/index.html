@@ -15,20 +15,22 @@
         }
         
         :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --dark-bg: #0a0e27;
-            --card-bg: rgba(255, 255, 255, 0.05);
+            --primary: #ff0844;
+            --secondary: #6c5ce7;
+            --accent: #a29bfe;
+            --dark: #0a0e27;
+            --darker: #050816;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
             --text-primary: #ffffff;
             --text-secondary: rgba(255, 255, 255, 0.7);
             --success-color: #10b981;
             --error-color: #ef4444;
-            --warning-color: #f59e0b;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
             min-height: 100vh;
             color: var(--text-primary);
             position: relative;
@@ -45,10 +47,24 @@
             width: 100%;
             height: 100%;
             background: 
-                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 20% 30%, rgba(255, 8, 68, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(108, 92, 231, 0.15) 0%, transparent 50%);
             pointer-events: none;
             z-index: 0;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
         }
         
         .container {
@@ -74,16 +90,21 @@
         
         .logo i {
             font-size: 3rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: pulse 2s ease-in-out infinite;
         }
         
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
         .logo h1 {
             font-size: 2.5rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -102,12 +123,12 @@
         }
         
         .video-wrapper {
-            background: var(--card-bg);
+            background: var(--glass);
             backdrop-filter: blur(20px);
             border-radius: 20px;
-            padding: 1.5rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
             position: relative;
         }
         
@@ -118,11 +139,12 @@
         
         #video {
             width: 100%;
-            border-radius: 12px;
+            border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            background: #000;
         }
         
-        /* Double Tap Overlays - PROPERLY FIXED */
+        /* Double Tap Overlays */
         .tap-overlay {
             position: absolute;
             top: 0;
@@ -180,15 +202,15 @@
             }
         }
         
-       /* Seek Bar Preview - FIXED positioning and performance */
+        /* Seek Bar Preview */
         .seek-preview {
             position: fixed;
             left: 0;
             top: 0;
             background: rgba(0, 0, 0, 0.95);
-            border: 3px solid rgba(102, 126, 234, 0.6);
-            border-radius: 8px;
-            padding: 6px;
+            border: 3px solid rgba(255, 8, 68, 0.6);
+            border-radius: 12px;
+            padding: 8px;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.15s ease;
@@ -198,7 +220,7 @@
             align-items: center;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
             will-change: transform, opacity;
-            transform: translateZ(0); /* Enable GPU acceleration */
+            transform: translateZ(0);
         }
         
         .seek-preview.visible {
@@ -209,11 +231,10 @@
             width: 160px;
             height: 90px;
             background: #000;
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             position: relative;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
         
         .seek-preview-thumbnail canvas {
@@ -225,13 +246,12 @@
         
         .seek-preview-time {
             color: white;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 4px 10px;
-            background: rgba(102, 126, 234, 0.9);
-            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 6px 12px;
+            background: var(--primary);
+            border-radius: 6px;
             white-space: nowrap;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
         
         .seek-preview::after {
@@ -250,7 +270,7 @@
         .action-buttons {
             display: flex;
             gap: 1rem;
-            margin-top: 1rem;
+            margin-top: 2rem;
             flex-wrap: wrap;
         }
         
@@ -261,23 +281,46 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            padding: 0.875rem 1.5rem;
-            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem 1.5rem;
+            background: var(--glass);
             color: white;
             text-decoration: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: 600;
             font-size: 0.95rem;
             transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
             cursor: pointer;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Shine effect on buttons */
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: left 0.6s;
+        }
+        
+        .action-btn:hover::before {
+            left: 100%;
         }
         
         .action-btn:hover {
             background: rgba(255, 255, 255, 0.1);
             transform: translateY(-2px);
-            border-color: var(--primary-color);
+            border-color: var(--primary);
         }
         
         .action-btn i {
@@ -285,21 +328,20 @@
         }
         
         .action-btn.primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             border: none;
         }
         
         .action-btn.primary:hover {
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 40px rgba(255, 8, 68, 0.5);
         }
         
-        /* Video Info - FIXED to show only Buffer Progress */
+        /* Video Info */
         .video-info {
             margin-top: 1.5rem;
             padding: 1.5rem;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .info-grid {
@@ -315,17 +357,18 @@
         }
         
         .info-item i {
-            color: var(--primary-color);
-            font-size: 1.2rem;
+            color: var(--primary);
+            font-size: 1.5rem;
         }
         
         .info-label {
             font-size: 0.85rem;
-            color: var(--text-secondary);
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
         }
         
         .info-value {
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             font-weight: 600;
         }
         
@@ -350,7 +393,7 @@
             width: 100%;
             height: 100%;
             border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--primary-color);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -362,7 +405,7 @@
             top: 10%;
             left: 10%;
             border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--secondary-color);
+            border-top-color: var(--secondary);
             border-radius: 50%;
             animation: spin 1.5s linear infinite reverse;
         }
@@ -373,7 +416,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 2.5rem;
-            color: var(--primary-color);
+            color: var(--primary);
         }
         
         .loading-text {
@@ -406,7 +449,7 @@
         
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
             border-radius: 4px;
             animation: progress 2s ease-in-out infinite;
         }
@@ -425,13 +468,13 @@
         .state-icon {
             width: 120px;
             height: 120px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 40px rgba(255, 8, 68, 0.3);
         }
         
         .state-icon i {
@@ -465,7 +508,7 @@
             align-items: center;
             gap: 0.75rem;
             padding: 1rem 2rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
             text-decoration: none;
             border-radius: 12px;
@@ -474,69 +517,112 @@
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 20px rgba(255, 8, 68, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            transition: left 0.7s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
         }
         
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+            box-shadow: 0 10px 40px rgba(255, 8, 68, 0.5);
         }
         
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
+            gap: 2rem;
             margin-top: 3rem;
         }
         
         .feature-card {
-            background: var(--card-bg);
+            background: var(--glass);
             backdrop-filter: blur(20px);
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 8, 68, 0.1),
+                transparent
+            );
+            transition: left 0.8s;
+        }
+        
+        .feature-card:hover::before {
+            left: 100%;
         }
         
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
-            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-10px);
+            border-color: rgba(255, 8, 68, 0.5);
+            box-shadow: 0 20px 40px rgba(255, 8, 68, 0.2);
         }
         
         .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 12px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1.5rem;
+            font-size: 2rem;
         }
         
         .feature-icon i {
-            font-size: 1.8rem;
             color: white;
         }
         
         .feature-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
         }
         
         .feature-card p {
             color: var(--text-secondary);
             line-height: 1.6;
-            font-size: 0.95rem;
         }
         
         .footer {
             text-align: center;
             margin-top: 4rem;
             padding: 2rem 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid var(--glass-border);
+            background: rgba(10, 14, 39, 0.95);
         }
         
         .footer p {
@@ -573,11 +659,6 @@
         
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
         }
         
         @keyframes progress {
@@ -626,14 +707,10 @@
             .action-btn {
                 min-width: 100%;
             }
-            
-            .seek-preview {
-                bottom: 80px;
-            }
         }
         
         .plyr {
-            border-radius: 12px;
+            border-radius: 16px;
         }
         
         .plyr--video {
@@ -641,17 +718,17 @@
         }
         
         .plyr__control--overlaid {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
         }
         
         .plyr--full-ui input[type=range] {
-            color: var(--primary-color);
+            color: var(--primary);
         }
         
         .plyr__control.plyr__tab-focus,
         .plyr__control:hover,
         .plyr__control[aria-expanded=true] {
-            background: var(--primary-color);
+            background: var(--primary);
         }
         
         .plyr__progress__buffer {
@@ -724,7 +801,7 @@
                     </button>
                 </div>
                 
-                <!-- Video Info - Only showing 3 items now -->
+                <!-- Video Info -->
                 <div class="video-info">
                     <div class="info-grid">
                         <div class="info-item">
