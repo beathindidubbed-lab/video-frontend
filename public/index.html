@@ -203,10 +203,9 @@
         }
         
         .seek-preview {
-            position: absolute;
-            left: 50%;
-            bottom: 80px;
-            transform: translateX(-50%);
+            position: fixed;
+            bottom: 0;
+            left: 0;
             background: rgba(0, 0, 0, 0.95);
             border: 3px solid rgba(255, 8, 68, 0.6);
             border-radius: 12px;
@@ -220,7 +219,7 @@
             align-items: center;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
             will-change: transform, opacity;
-            transform: translateZ(0);
+            transform: translate(-50%, -120%);
         }
         
         .seek-preview.visible {
