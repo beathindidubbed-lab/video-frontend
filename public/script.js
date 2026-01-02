@@ -418,37 +418,41 @@ function setupSeekPreview() {
     
     function updatePreview(clientX, rect) {
         if (!videoElement || !videoElement.duration) return;
-    
+        
         const x = clientX - rect.left;
         const percentage = Math.max(0, Math.min(1, x / rect.width));
         const time = percentage * videoElement.duration;
-    
-       // Update time display
-       previewTime.textContent = formatTime(time);
-    
-       // Position preview relative to seek bar position
-       const previewWidth = preview.offsetWidth;
-       let previewX = (percentage * rect.width) - (previewWidth / 2);
-    
-       // Keep preview within bounds of the player container
-       const playerContainer = document.querySelector('.player-container');
-       const containerWidth = playerContainer ? playerContainer.offsetWidth : rect.width;
-       previewX = Math.max(0, Math.min(containerWidth - previewWidth, previewX));
-    
-       preview.style.left = `${previewX}px`;
-       preview.classList.add('visible');
-    
-       // Initialize and update preview video
-       if (!previewVideo) {
-        initPreviewVideo();
-       }
-    
-       if (previewVideo && previewVideo.readyState >= 2) {
-           previewVideo.currentTime = time;
-       } else {
-           drawFrame(videoElement);
-       }
-   }
+        
+        // Update time display
+        previewTime.textContent = formatTime(time);
+        
+        // Position preview to follow mouse/touch horizontally
+        const previewWidth = preview.offsetWidth;
+        let previewX = rect.left + (percentage * rect.width);
+        
+        // Keep preview within viewport bounds
+        const minX = previewWidth / 2 + 10;
+        const maxX = window.innerWidth - previewWidth / 2 - 10;
+        previewX = Math.max(minX, Math.min(maxX, previewX));
+        
+        // Position preview above the seek bar
+        const previewY = rect.top;
+        
+        preview.style.left = `${previewX}px`;
+        preview.style.bottom = `${window.innerHeight - previewY}px`;
+        preview.classList.add('visible');
+        
+        // Initialize and update preview video
+        if (!previewVideo) {
+            initPreviewVideo();
+        }
+        
+        if (previewVideo && previewVideo.readyState >= 2) {
+            previewVideo.currentTime = time;
+        } else {
+            drawFrame(videoElement);
+        }
+    }
     
     function hidePreview() {
         isHovering = false;
